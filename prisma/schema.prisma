@@ -21,3 +21,13 @@ model Product {
   sku         String  @unique
   published   Boolean @default(false)
 }
+
+model User {
+  id String @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name String?
+  email String @unique
+  password String
+}
