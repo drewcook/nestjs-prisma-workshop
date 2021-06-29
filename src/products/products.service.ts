@@ -2,6 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { PrismaService } from './../prisma/prisma.service';
+import { findManyCursorConnection } from '@devoxa/prisma-relay-cursor-connection';
+import { Prisma } from '@prisma/client';
+import { ConnectionArgs } from 'src/page/connection-args.dto';
+import { Page } from 'src/page/page.dto';
+import { ProductEntity } from './entities/product.entity';
 
 @Injectable()
 export class ProductsService {
@@ -13,6 +18,31 @@ export class ProductsService {
 
   findAll() {
     return this.prisma.product.findMany({ where: { published: true } });
+  }
+
+  async findPage(connectionArgs: ConnectionArgs) {
+    const where: Prisma.ProductWhereInput = {
+      published: true,
+    };
+    const productPage = await findManyCursorConnection(
+      (args) =>
+        this.prisma.product.findMany({
+          ...args,
+          where: where,
+        }),
+      () =>
+        this.prisma.product.count({
+          where: where,
+        }),
+      connectionArgs, // 👈 use connection arguments
+      {
+        recordToEdge: (record) => ({
+          node: new ProductEntity(record), // 👈 instance to transform price
+        }),
+      },
+    );
+
+    return new Page<ProductEntity>(productPage); // 👈 instance as this object is returned
   }
 
   findDrafts() {
